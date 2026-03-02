@@ -8,7 +8,14 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      python = pkgs.python312;
+      # Override datasette to skip its failing test_max_csv_mb test
+      # (SQLite compatibility issue with datasette 0.65.2).
+      # Dependency chain: phonemizer-fork → segments → csvw → frictionless → datasette
+      python = pkgs.python312.override {
+        packageOverrides = _final: prev: {
+          datasette = prev.datasette.overrideAttrs { doCheck = false; };
+        };
+      };
       pyPkgs = python.pkgs;
 
       # -- Model files (cached in Nix store) -----------------------------------
