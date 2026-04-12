@@ -8,12 +8,17 @@
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages.${system};
-      # Override datasette to skip its failing test_max_csv_mb test
-      # (SQLite compatibility issue with datasette 0.65.2).
-      # Dependency chain: phonemizer-fork → segments → csvw → frictionless → datasette
+      # Avoid building frictionless' optional test dependencies.
+      # Dependency chain: phonemizer-fork → segments → csvw → frictionless.
+      # In nixpkgs, frictionless pulls all optional format backends into
+      # nativeCheckInputs, including datasette, only for its test suite.
+      # When this flake follows a newer top-level nixpkgs in other configs,
+      # datasette can fail during that test-only build. Disabling frictionless
+      # checks here keeps kokoro-say reproducible and avoids building datasette
+      # entirely for this dependency chain.
       python = pkgs.python312.override {
         packageOverrides = _final: prev: {
-          datasette = prev.datasette.overrideAttrs { doCheck = false; };
+          frictionless = prev.frictionless.overrideAttrs { doCheck = false; };
         };
       };
       pyPkgs = python.pkgs;
